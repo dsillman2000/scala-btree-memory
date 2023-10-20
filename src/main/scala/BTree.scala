@@ -1,15 +1,15 @@
 import scala.collection._
+import scala.annotation.tailrec
 
-class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord: Ordering[K]) {
+class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord: Ordering[K], implicit val m: Int = 5) {
 
     import ord._;
-
-    val m: Int = 5
 
     def keys: Seq[K] = _keys
     def children: Seq[BTree[K]] = _children
     def isLeaf: Boolean = children.isEmpty
     def isEmpty: Boolean = keys.isEmpty
+    def isFull: Boolean = keys.length == m - 1
 
     requireBTreeInvariants
 
@@ -46,22 +46,37 @@ class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord
         val root: BTree[K] = this
     }
 
-    private def insertNotFull(k: K) = {
+    def insertNotFull(k: K): Unit = {
+        var insertionIdx: Int = keys.takeWhile(_ <= k).length - 1
         if (isLeaf) {
+            val newKeys: Seq[K] = keys.slice(0, insertionIdx + 1) ++ Seq(k) ++ keys.slice(insertionIdx + 1, keys.length)
+            _keys = newKeys
+        } else {
+            if (children(insertionIdx + 1).keys.length == m - 1) {
+                splitChild(insertionIdx + 1)
+                println(toString)
+                if (keys(insertionIdx + 1) < k) insertionIdx += 1
+            }
+            children(insertionIdx + 1).insertNotFull(k)
         }
     }
 
+    /**
+      * Utility method for splitting a full child node of the root by index.
+      *
+      * @param childIdx the index of the child node to split
+      */
     def splitChild(childIdx: Int) = {
 
         var child: BTree[K] = children(childIdx)
 
         require(child.keys.length == (m - 1))
 
-        var newChild: BTree[K] = BTree.empty
+        var newChild: BTree[K] = BTree.empty(m)
         val newKey: K = child.keys(m / 2)
         val newKeys: Seq[K] = keys.slice(0, childIdx) ++ Seq(newKey) ++ keys.slice(childIdx, m - 1)
         val newLKeys: Seq[K] = child.keys.slice(0, m / 2)
-        val newRKeys: Seq[K] = child.keys.slice(m / 2, m)
+        val newRKeys: Seq[K] = child.keys.slice(m / 2 + 1, m)
 
         child._keys = newLKeys
         newChild._keys = newRKeys
@@ -73,12 +88,12 @@ class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord
             child._children = newLChildren
             newChild._children = newRChildren
         }
-
         val newChildren: Seq[BTree[K]] = (
-            children.slice(0, childIdx - 1) ++ 
+            children.slice(0, childIdx) ++ 
             Seq(child, newChild) ++ 
             children.slice(childIdx + 1, m)
         )
+        println(s"$children -> $newChildren")
 
         _keys = newKeys
         _children = newChildren
@@ -109,7 +124,7 @@ class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord
 }
 
 object BTree {
-    def empty[K](implicit ord: Ordering[K]): BTree[K] = new BTree[K](Nil, Nil)
+    def empty[K](m: Int = 5)(implicit ord: Ordering[K]): BTree[K] = new BTree[K](Nil, Nil)(ord, m)
 }
 
 object Run extends App {
