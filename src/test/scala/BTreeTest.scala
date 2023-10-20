@@ -20,10 +20,8 @@ class BTreeTest extends AnyFlatSpec with Checkers {
         
         rt.splitChild(0)
 
-        println(rt)
-
-        assert(false)
         assert(rt.children.length == 3)
+        assert(rt.toString == "((0,0),1,(1,2),6,(9,11))")
 
     }
 

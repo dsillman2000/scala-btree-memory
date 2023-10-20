@@ -9,17 +9,31 @@ class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord
     def keys: Seq[K] = _keys
     def children: Seq[BTree[K]] = _children
     def isLeaf: Boolean = children.isEmpty
+    def isEmpty: Boolean = keys.isEmpty
 
-    require(m > 0, "B-Tree order, `m`, must be positive")
-    require(children.length <= m, "B-Tree must have `|C| <= m`")
-    require(
-        (keys.length == children.length - 1) || isLeaf, 
-        "B-Tree node must have exactly `|C| - 1` keys"
-    )
-    require(
-        (keys.sorted == keys),
-        "B-Tree keys must be sorted"
-    )
+    requireBTreeInvariants
+
+    private def requireBTreeInvariants = {
+        try {
+            require(m > 0, "B-Tree order, `m`, must be positive")
+            require(children.length <= m, "B-Tree must have `|C| <= m`")
+            require(
+                (keys.length == children.length - 1) || isLeaf, 
+                "B-Tree node must have exactly `|C| - 1` keys"
+            )
+            require(
+                (keys.sorted == keys),
+                "B-Tree keys must be sorted"
+            )
+            require(children.filter(_.isEmpty).isEmpty, "B-Tree child nodes must have at least 1 key")
+            require(
+                children.map(_.keys(0)).sorted == children.map(_.keys(0)),
+                "B-Tree child nodes must be sorted by head key"
+            )
+        } catch {
+            case e: IllegalArgumentException => throw new IllegalArgumentException(e.getMessage ++ " in:\n" ++ toString)
+        }
+    }
 
     override def toString: String = 
         "(" ++ (children
@@ -60,10 +74,16 @@ class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord
             newChild._children = newRChildren
         }
 
-        val newChildren: Seq[BTree[K]] = children.slice(0, childIdx) ++ Seq(newChild) ++ children.slice(childIdx, m)
+        val newChildren: Seq[BTree[K]] = (
+            children.slice(0, childIdx - 1) ++ 
+            Seq(child, newChild) ++ 
+            children.slice(childIdx + 1, m)
+        )
 
         _keys = newKeys
         _children = newChildren
+
+        requireBTreeInvariants
     }
 
     def contains(k: K): Boolean = {
@@ -89,7 +109,7 @@ class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord
 }
 
 object BTree {
-    def empty[K](implicit ord: Ordering[K]): BTree[K] = new BTree[K](Seq.empty, Seq.empty)
+    def empty[K](implicit ord: Ordering[K]): BTree[K] = new BTree[K](Nil, Nil)
 }
 
 object Run extends App {
