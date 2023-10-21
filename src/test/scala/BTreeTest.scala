@@ -34,7 +34,7 @@ class BTreeTest extends AnyFlatSpec with Checkers {
 
     }
 
-    it should "be able to split a full node with no full children" in {
+    it should "be able to split a full node with singleton parent" in {
 
         var rt: BTree[Int] = new BTree(
             Seq(20), Seq(
@@ -57,6 +57,37 @@ class BTreeTest extends AnyFlatSpec with Checkers {
         assert(rt.keys == Seq(10, 20))
         assert(lsplit.keys == Seq(-5, 3))
         assert(rsplit.keys == Seq(18))
+
+    }
+
+    it should "be able to split a full node with full parent" in {
+
+        var rt: BTree[Int] = new BTree(
+            Seq(20, 40, 50, 60), Seq(
+                new BTree(Seq(-5, 3, 10, 18), Seq(
+                    new BTree(Seq(-9, -8, -6, -6), Nil),
+                    new BTree(Seq(-2, 0, 2, 2), Nil),
+                    new BTree(Seq(4, 5, 7, 10), Nil),
+                    new BTree(Seq(12, 15, 15, 16), Nil),
+                    new BTree(Seq(18, 19, 19, 20), Nil)
+                )),
+                new BTree(Seq(31, 32, 35, 36), Nil),
+                new BTree(Seq(41, 45), Nil),
+                new BTree(Seq(55, 59), Nil),
+                new BTree(Seq(65, 70, 71), Nil)
+            )
+        )
+        
+        rt.splitChild(0)
+
+        val lsplit = rt.children(0)
+        val rsplit = rt.children(1)
+
+        assert(rt.keys == Seq(50))
+        assert(lsplit.keys == Seq(20, 40))
+        assert(rsplit.keys == Seq(60))
+
+        print(rt)
 
     }
 

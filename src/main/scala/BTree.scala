@@ -61,42 +61,68 @@ class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord
         }
     }
 
+    def splitRoot: Unit = {
+
+        require(isFull)
+
+        var newRoot: BTree[K] = BTree.empty(m)
+        newRoot._children = Seq(new BTree(keys, children))
+
+        newRoot.splitChild(0)
+
+        _keys = newRoot.keys
+        _children = newRoot.children
+
+    }
+
     /**
-      * Utility method for splitting a full child node of the root by index.
+      * Utility method for splitting an over-full child node of the root by index.
       *
       * @param childIdx the index of the child node to split
       */
     def splitChild(childIdx: Int) = {
 
-        var child: BTree[K] = children(childIdx)
+        if (isFull) {
 
-        require(child.keys.length == (m - 1))
+            splitRoot
+            
+        } else {
 
-        var newChild: BTree[K] = BTree.empty(m)
-        val newKey: K = child.keys(m / 2)
-        val newKeys: Seq[K] = keys.slice(0, childIdx) ++ Seq(newKey) ++ keys.slice(childIdx, m - 1)
-        val newLKeys: Seq[K] = child.keys.slice(0, m / 2)
-        val newRKeys: Seq[K] = child.keys.slice(m / 2 + 1, m)
+            var child: BTree[K] = children(childIdx)
 
-        child._keys = newLKeys
-        newChild._keys = newRKeys
+            require(child.isFull)
 
-        if (!child.isLeaf) {
-            val newLChildren: Seq[BTree[K]] = child.children.slice(0, (m / 2.0).ceil.toInt)
-            val newRChildren: Seq[BTree[K]] = child.children.slice((m / 2.0).ceil.toInt, m)
+            var newChild: BTree[K] = BTree.empty(m)
+            val newKey: K = child.keys(m / 2)
+            val newKeys: Seq[K] = keys.slice(0, childIdx) ++ Seq(newKey) ++ keys.slice(childIdx, m - 1)
+            val newLKeys: Seq[K] = child.keys.slice(0, m / 2)
+            val newRKeys: Seq[K] = child.keys.slice(m / 2 + 1, m)
 
-            child._children = newLChildren
-            newChild._children = newRChildren
+            child._keys = newLKeys
+            newChild._keys = newRKeys
+
+            if (!child.isLeaf) {
+
+                val newLChildren: Seq[BTree[K]] = child.children.slice(0, (m / 2.0).ceil.toInt)
+                val newRChildren: Seq[BTree[K]] = child.children.slice((m / 2.0).ceil.toInt, m)
+
+                child._children = newLChildren
+                newChild._children = newRChildren
+
+            }
+
+            val newChildren: Seq[BTree[K]] = (
+                children.slice(0, childIdx) ++ 
+                Seq(child, newChild) ++ 
+                children.slice(childIdx + 1, m)
+            )
+
+            println(s"$keys -> $newKeys")
+
+            _keys = newKeys
+            _children = newChildren
+
         }
-        val newChildren: Seq[BTree[K]] = (
-            children.slice(0, childIdx) ++ 
-            Seq(child, newChild) ++ 
-            children.slice(childIdx + 1, m)
-        )
-        println(s"$children -> $newChildren")
-
-        _keys = newKeys
-        _children = newChildren
 
         requireBTreeInvariants
     }
