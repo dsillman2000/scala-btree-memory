@@ -40,7 +40,7 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
         rt invokePrivate splitChild(0)
 
         assert(rt.children.length == 3)
-        assert(rt.toString == "((%s,%s),%s,(%s),%s,(%s,%s))".format(elems: _*))
+        assert(rt.toString == "((%s,%s),%s,(%s),%s,(%s,%s))".format(elems: _*) && elems == rt.elementsInOrder)
 
       }
     }
@@ -62,7 +62,10 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
         rt invokePrivate splitChild(1)
 
         assert(rt.children.length == 3)
-        assert(rt.toString == "((%s,%s),%s,(%s,%s),%s,(%s))".format(elems: _*))
+        assert(
+          rt.toString == "((%s,%s),%s,(%s,%s),%s,(%s))".format(elems: _*) &&
+            elems == rt.elementsInOrder
+        )
 
       }
     }
@@ -99,7 +102,8 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
 
         assert(
           rt.toString == "(((%s,%s),%s,(%s,%s),%s,(%s,%s)),%s,((%s,%s),%s,(%s)),%s,(%s,%s))"
-            .format(elems: _*)
+            .format(elems: _*) &&
+            elems == rt.elementsInOrder
         )
 
       }
@@ -143,7 +147,8 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
         assert(
           rt.toString == ("((((%s,%s,%s,%s),%s,(%s,%s,%s,%s),%s,(%s,%s,%s,%s),%s,(%s,%s,%s,%s),%s,(%s,%s," +
             "%s,%s)),%s,(%s,%s,%s,%s),%s,(%s,%s)),%s,((%s,%s),%s,(%s,%s,%s)))")
-            .format(elems: _*)
+            .format(elems: _*) &&
+            elems == rt.elementsInOrder
         )
 
       }
@@ -184,7 +189,7 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
           )
         )
         assert(
-          rt.toString == "((%s,%s,%s,%s),%s,(%s,%s,%s,%s))".format(elems: _*)
+          rt.toString == "((%s,%s,%s,%s),%s,(%s,%s,%s,%s))".format(elems: _*) && elems == rt.elementsInOrder
         )
 
         rt invokePrivate insertNotFull(i + 12)
@@ -192,11 +197,19 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
         elems = (elems :+ (i + 12)).sorted
 
         assert(
-          rt.toString == "((%s,%s,%s,%s),%s,(%s,%s,%s),%s,(%s))".format(
-            elems: _*
-          )
+          rt.toString == "((%s,%s,%s,%s),%s,(%s,%s,%s),%s,(%s))".format(elems: _*) && elems == rt.elementsInOrder
         )
 
+      }
+    }
+  }
+
+  it should "be able to insert generally" in {
+
+    forAll { (ints: Seq[Int]) =>
+      whenever(ints.nonEmpty && ints.length < 1e5) {
+        var rt: BTree[Int] = BTree.empty(m = 5)
+        ints.foreach(rt.insert)
       }
     }
 

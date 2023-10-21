@@ -3,6 +3,17 @@ import scala.annotation.tailrec
 
 package btree {
 
+  /** B-Tree implementation, generic in its key type `K`.
+    *
+    * @param _keys
+    *   Sequence of keys in the root node of the tree.
+    * @param _children
+    *   Sequence of subtrees between each key in the root node of the tree.
+    * @param ord
+    *   Ordering of the keys which organizes the tree.
+    * @param m
+    *   Maximum branching factor of the tree. Defaults to 5.
+    */
   class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(
       implicit val ord: Ordering[K],
       implicit val m: Int = 5
@@ -10,14 +21,28 @@ package btree {
 
     import ord._;
 
+    requireBTreeInvariants
+
     def keys: Seq[K] = _keys
     def children: Seq[BTree[K]] = _children
     def isLeaf: Boolean = children.isEmpty
     def isEmpty: Boolean = keys.isEmpty
     def isFull: Boolean = keys.length == m - 1
 
-    requireBTreeInvariants
+    /** Traverse the B-Tree in-order.
+      *
+      * @return
+      *   Elements of this B-Tree, in-order.
+      */
+    def elementsInOrder: Seq[K] = {
+      if (isLeaf) {
+        return keys
+      }
+      return children.map(_.elementsInOrder).zip(keys).flatMap(x => x._1 :+ x._2) ++ children.last.elementsInOrder
+    }
 
+    /** Asserts that the B-Tree invariants hold on this B-Tree instance.
+      */
     private def requireBTreeInvariants = {
       try {
         require(m > 0, "B-Tree order, `m`, must be positive")
@@ -35,11 +60,17 @@ package btree {
           children.map(_.keys(0)).sorted == children.map(_.keys(0)),
           "B-Tree child nodes must be sorted by head key"
         )
+        require(elementsInOrder == elementsInOrder.sorted, "B-Tree elements must be sorted, when traversed in-order")
       } catch {
         case e: IllegalArgumentException => throw new IllegalArgumentException(e.getMessage ++ " in:\n" ++ toString)
       }
     }
 
+    /** Represent this tree as a `String`.
+      *
+      * @return
+      *   `String` representation of the tree
+      */
     override def toString: String =
       "(" ++ (children
         .grouped(1)
@@ -47,24 +78,53 @@ package btree {
         .flatMap(x => x._1 ++ x._2)
         .mkString(",")) ++ ")"
 
-    def insert(k: K) = {
-      val root: BTree[K] = this
+    /** Inserts a given key from the root of the tree, in-place.
+      *
+      * @param k
+      *   Key to insert into the tree
+      */
+    def insert(k: K): Unit = {
+
+      if (isFull) {
+
+        if (isLeaf) {
+          splitRoot
+        }
+
+        val insertionIdx: Int = keys.takeWhile(_ <= k).length
+        children(insertionIdx).insert(k)
+
+      } else {
+        insertNotFull(k)
+
+      }
+      requireBTreeInvariants
     }
 
+    /** Inserts a given key from the root of the tree (assuming it is not full), in-place.
+      *
+      * @param k
+      *   Key to insert into the tree
+      */
     private def insertNotFull(k: K): Unit = {
-      var insertionIdx: Int = keys.takeWhile(_ <= k).length - 1
+      var leftKeys: Seq[K] = keys.takeWhile(_ <= k)
       if (isLeaf) {
-        val newKeys: Seq[K] = keys.slice(0, insertionIdx + 1) ++ Seq(k) ++ keys.slice(insertionIdx + 1, keys.length)
+        val rightKeys: Seq[K] = keys.dropWhile(_ <= k)
+        val newKeys: Seq[K] = (leftKeys :+ k) ++ rightKeys
         _keys = newKeys
       } else {
-        if (children(insertionIdx + 1).keys.length == m - 1) {
-          splitChild(insertionIdx + 1)
-          if (keys(insertionIdx + 1) < k) insertionIdx += 1
+        if (children(leftKeys.length).keys.length == m - 1) {
+          splitChild(leftKeys.length)
+          if (keys(leftKeys.length) < k) {
+            leftKeys = leftKeys ++ Seq(k)
+          }
         }
-        children(insertionIdx + 1).insertNotFull(k)
+        children(leftKeys.length).insert(k)
       }
     }
 
+    /** Utility method for splitting a full root node, in-place.
+      */
     private def splitRoot: Unit = {
 
       require(isFull)
@@ -77,9 +137,11 @@ package btree {
       _keys = newRoot.keys
       _children = newRoot.children
 
+      requireBTreeInvariants
+
     }
 
-    /** Utility method for splitting an over-full child node of the root by index.
+    /** Utility method for splitting an over-full child node of the root by index, in-place.
       *
       * @param childIdx
       *   the index of the child node to split
@@ -129,6 +191,13 @@ package btree {
       requireBTreeInvariants
     }
 
+    /** Query the tree to search for the given key.
+      *
+      * @param k
+      *   search key
+      * @return
+      *   true if the key is found, false otherwise
+      */
     def contains(k: K): Boolean = {
       if (keys.isEmpty) return false
       if (children.isEmpty) return keys.contains(k)
@@ -151,6 +220,8 @@ package btree {
 
   }
 
+  /** Companion object, useful for instantiating empty B-Trees.
+    */
   object BTree {
     def empty[K](m: Int = 5)(implicit ord: Ordering[K]): BTree[K] = new BTree[K](Nil, Nil)(ord, m)
   }
