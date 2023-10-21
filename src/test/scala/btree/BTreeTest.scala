@@ -5,6 +5,8 @@ import org.scalacheck.Prop._
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import org.scalatest.PrivateMethodTester
 
+import btree.BTree
+
 class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMethodTester {
 
   behavior of "BTree"
