@@ -12,11 +12,11 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
   behavior of "BTree"
 
   it should "be instantiable as empty" in {
-    val emp: BTree[Int] = BTree.empty(m = 5)
+    val emp: BTree[Int] = BTree.empty(10)
     assert(emp.keys.isEmpty)
     assert(emp.children.isEmpty)
 
-    forAll((i: Int) => !emp.contains(i))
+    forAll((i: Int) => assert(!emp.contains(i) && emp.depth == 1))
   }
 
   it should "be able to split a full leaf" in {
@@ -39,8 +39,10 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
 
         rt invokePrivate splitChild(0)
 
-        assert(rt.children.length == 3)
-        assert(rt.toString == "((%s,%s),%s,(%s),%s,(%s,%s))".format(elems: _*) && elems == rt.elementsInOrder)
+        assert(
+          rt.children.length == 3 && rt.depth == 2 && rt.toString == "((%s,%s),%s,(%s),%s,(%s,%s))".format(elems: _*)
+            && elems == rt.elementsInOrder
+        )
 
       }
     }
@@ -61,9 +63,9 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
 
         rt invokePrivate splitChild(1)
 
-        assert(rt.children.length == 3)
         assert(
-          rt.toString == "((%s,%s),%s,(%s,%s),%s,(%s))".format(elems: _*) &&
+          rt.children.length == 3 && rt.depth == 2 &&
+            rt.toString == "((%s,%s),%s,(%s,%s),%s,(%s))".format(elems: _*) &&
             elems == rt.elementsInOrder
         )
 
@@ -103,7 +105,8 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
         assert(
           rt.toString == "(((%s,%s),%s,(%s,%s),%s,(%s,%s)),%s,((%s,%s),%s,(%s)),%s,(%s,%s))"
             .format(elems: _*) &&
-            elems == rt.elementsInOrder
+            elems == rt.elementsInOrder &&
+            rt.depth == 3
         )
 
       }
@@ -148,7 +151,8 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
           rt.toString == ("((((%s,%s,%s,%s),%s,(%s,%s,%s,%s),%s,(%s,%s,%s,%s),%s,(%s,%s,%s,%s),%s,(%s,%s," +
             "%s,%s)),%s,(%s,%s,%s,%s),%s,(%s,%s)),%s,((%s,%s),%s,(%s,%s,%s)))")
             .format(elems: _*) &&
-            elems == rt.elementsInOrder
+            elems == rt.elementsInOrder &&
+            rt.depth == 4
         )
 
       }
@@ -166,7 +170,7 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
 
         rt invokePrivate insertNotFull(i + 2)
 
-        assert(rt.toString == "(%s,%s,%s,%s)".format(i, i + 2, i + 4, i + 8))
+        assert(rt.toString == "(%s,%s,%s,%s)".format(i, i + 2, i + 4, i + 8) && rt.depth == 1)
 
       }
     }
@@ -190,6 +194,7 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
         )
         assert(
           rt.toString == "((%s,%s,%s,%s),%s,(%s,%s,%s,%s))".format(elems: _*) && elems == rt.elementsInOrder
+            && rt.depth == 2
         )
 
         rt invokePrivate insertNotFull(i + 12)
@@ -198,6 +203,7 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
 
         assert(
           rt.toString == "((%s,%s,%s,%s),%s,(%s,%s,%s),%s,(%s))".format(elems: _*) && elems == rt.elementsInOrder
+            && rt.depth == 2
         )
 
       }
@@ -208,8 +214,9 @@ class BTreeTest extends AnyFlatSpec with ScalaCheckPropertyChecks with PrivateMe
 
     forAll { (ints: Seq[Int]) =>
       whenever(ints.nonEmpty && ints.length < 1e5) {
-        var rt: BTree[Int] = BTree.empty(m = 5)
+        var rt: BTree[Int] = BTree.empty(10)
         ints.foreach(rt.insert)
+        assert(rt.depth < 5)
       }
     }
 
