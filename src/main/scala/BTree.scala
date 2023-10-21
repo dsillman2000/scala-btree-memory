@@ -54,7 +54,6 @@ class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord
         } else {
             if (children(insertionIdx + 1).keys.length == m - 1) {
                 splitChild(insertionIdx + 1)
-                println(toString)
                 if (keys(insertionIdx + 1) < k) insertionIdx += 1
             }
             children(insertionIdx + 1).insertNotFull(k)
@@ -85,7 +84,7 @@ class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord
         if (isFull) {
 
             splitRoot
-            
+
         } else {
 
             var child: BTree[K] = children(childIdx)
@@ -116,8 +115,6 @@ class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(implicit val ord
                 Seq(child, newChild) ++ 
                 children.slice(childIdx + 1, m)
             )
-
-            println(s"$keys -> $newKeys")
 
             _keys = newKeys
             _children = newChildren
