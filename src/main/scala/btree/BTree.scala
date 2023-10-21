@@ -14,7 +14,7 @@ package btree {
     * @param m
     *   Maximum branching factor of the tree. Defaults to 5.
     */
-  class BTree[K](var _keys: Seq[K], var _children: Seq[BTree[K]])(
+  class BTree[K](var keys: Seq[K], var children: Seq[BTree[K]])(
       implicit val ord: Ordering[K],
       implicit val m: Int = 5
   ) {
@@ -23,8 +23,6 @@ package btree {
 
     requireBTreeInvariants
 
-    def keys: Seq[K] = _keys
-    def children: Seq[BTree[K]] = _children
     def isLeaf: Boolean = children.isEmpty
     def isEmpty: Boolean = keys.isEmpty
     def isFull: Boolean = keys.length == m - 1
@@ -111,7 +109,7 @@ package btree {
       if (isLeaf) {
         val rightKeys: Seq[K] = keys.dropWhile(_ <= k)
         val newKeys: Seq[K] = (leftKeys :+ k) ++ rightKeys
-        _keys = newKeys
+        keys = newKeys
       } else {
         if (children(leftKeys.length).keys.length == m - 1) {
           splitChild(leftKeys.length)
@@ -130,12 +128,12 @@ package btree {
       require(isFull)
 
       var newRoot: BTree[K] = BTree.empty(m)
-      newRoot._children = Seq(new BTree(keys, children))
+      newRoot.children = Seq(new BTree(keys, children))
 
       newRoot.splitChild(0)
 
-      _keys = newRoot.keys
-      _children = newRoot.children
+      keys = newRoot.keys
+      children = newRoot.children
 
       requireBTreeInvariants
 
@@ -164,16 +162,16 @@ package btree {
         val newLKeys: Seq[K] = child.keys.slice(0, m / 2)
         val newRKeys: Seq[K] = child.keys.slice(m / 2 + 1, m)
 
-        child._keys = newLKeys
-        newChild._keys = newRKeys
+        child.keys = newLKeys
+        newChild.keys = newRKeys
 
         if (!child.isLeaf) {
 
           val newLChildren: Seq[BTree[K]] = child.children.slice(0, (m / 2.0).ceil.toInt)
           val newRChildren: Seq[BTree[K]] = child.children.slice((m / 2.0).ceil.toInt, m)
 
-          child._children = newLChildren
-          newChild._children = newRChildren
+          child.children = newLChildren
+          newChild.children = newRChildren
 
         }
 
@@ -183,8 +181,8 @@ package btree {
             children.slice(childIdx + 1, m)
         )
 
-        _keys = newKeys
-        _children = newChildren
+        keys = newKeys
+        children = newChildren
 
       }
 
