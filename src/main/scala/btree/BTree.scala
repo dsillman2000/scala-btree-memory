@@ -15,8 +15,8 @@ package btree {
     *   Maximum branching factor of the tree. Defaults to 5.
     */
   class BTree[K](var keys: Seq[K], var children: Seq[BTree[K]])(
-      implicit val ord: Ordering[K],
-      implicit val m: Int = 5
+      implicit val m: Int = 5,
+      implicit val ord: Ordering[K]
   ) {
 
     import ord._;
@@ -26,6 +26,13 @@ package btree {
     def isLeaf: Boolean = children.isEmpty
     def isEmpty: Boolean = keys.isEmpty
     def isFull: Boolean = keys.length == m - 1
+
+    def depth: Int = {
+      if (isLeaf) {
+        return 1
+      }
+      return 1 + children.map(_.depth).max
+    }
 
     /** Traverse the B-Tree in-order.
       *
@@ -221,6 +228,6 @@ package btree {
   /** Companion object, useful for instantiating empty B-Trees.
     */
   object BTree {
-    def empty[K](m: Int = 5)(implicit ord: Ordering[K]): BTree[K] = new BTree[K](Nil, Nil)(ord, m)
+    def empty[K](m: Int = 5)(implicit ord: Ordering[K]): BTree[K] = new BTree[K](Nil, Nil)(m, ord)
   }
 }
